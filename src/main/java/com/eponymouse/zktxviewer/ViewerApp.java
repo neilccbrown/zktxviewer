@@ -49,6 +49,7 @@ public class ViewerApp extends ApplicationAdapter
     public void render()
     {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        setupViewport();
         texture.bind(0);
         renderer.begin(new Matrix4(), GL20.GL_TRIANGLE_FAN);
         renderer.texCoord(0, 0);
@@ -60,5 +61,21 @@ public class ViewerApp extends ApplicationAdapter
         renderer.texCoord(0, 1);
         renderer.vertex(-1, 1, 0);
         renderer.end();
+    }
+
+    private void setupViewport()
+    {
+        float widthIfFullHeight = (float)Gdx.graphics.getHeight() / texture.getHeight()  * texture.getWidth();
+        float heightIfFullWidth = (float)Gdx.graphics.getWidth() / texture.getWidth() * texture.getHeight();
+        if (widthIfFullHeight > Gdx.graphics.getWidth())
+        {
+            // Width-limited:
+            Gdx.gl.glViewport(0, (int)(Gdx.graphics.getHeight() - heightIfFullWidth) / 2, Gdx.graphics.getWidth(), (int)heightIfFullWidth);
+        }
+        else
+        {
+            // Height-limited:
+            Gdx.gl.glViewport((int)(Gdx.graphics.getWidth() - widthIfFullHeight) / 2, 0, (int)widthIfFullHeight, Gdx.graphics.getHeight());
+        }
     }
 }
