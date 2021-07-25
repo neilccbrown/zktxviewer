@@ -16,12 +16,16 @@ package com.eponymouse.zktxviewer;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ImmediateModeRenderer;
 import com.badlogic.gdx.graphics.glutils.ImmediateModeRenderer20;
+import com.badlogic.gdx.graphics.glutils.KTXTextureData;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix4;
+import org.lwjgl.opengl.GL30;
 
 import java.io.File;
 
@@ -31,6 +35,9 @@ public class ViewerApp extends ApplicationAdapter
     private Texture texture;
     private ShaderProgram shader;
     private ImmediateModeRenderer renderer;
+    private int totalLevels;
+    // -1 means automatic, 0+ means specific level
+    private int mipMapLevel;
 
     public ViewerApp(File file)
     {
@@ -40,9 +47,26 @@ public class ViewerApp extends ApplicationAdapter
     @Override
     public void create()
     {
-        texture = new Texture(Gdx.files.absolute(file.getAbsolutePath()), true);
+        KTXTextureData data = new KTXTextureData(Gdx.files.absolute(file.getAbsolutePath()), false);
+        texture = new Texture(data);
+        totalLevels = data.getNumberOfMipMapLevels();
         shader = new ShaderProgram(Gdx.files.internal("vertex.glsl"), Gdx.files.internal("fragment.glsl"));
         renderer = new ImmediateModeRenderer20(10, false, false, 1, shader);
+        Gdx.input.setInputProcessor(new InputAdapter() {
+            @Override
+            public boolean keyDown(int keycode)
+            {
+                if (keycode == Keys.RIGHT)
+                {
+                    mipMapLevel = Math.min(mipMapLevel + 1, totalLevels - 1);
+                }
+                else if (keycode == Keys.LEFT)
+                {
+                    mipMapLevel = Math.max(mipMapLevel - 1, -1);
+                }
+                return super.keyDown(keycode);
+            }
+        });
     }
 
     @Override
@@ -50,6 +74,9 @@ public class ViewerApp extends ApplicationAdapter
     {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         setupViewport();
+        System.out.println("Level: " + mipMapLevel);
+        Gdx.gl.glTexParameteri(texture.glTarget, GL30.GL_TEXTURE_BASE_LEVEL, mipMapLevel == -1 ? 0 : mipMapLevel);
+        Gdx.gl.glTexParameteri(texture.glTarget, GL30.GL_TEXTURE_MAX_LEVEL, mipMapLevel == -1 ? totalLevels : mipMapLevel);
         texture.bind(0);
         renderer.begin(new Matrix4(), GL20.GL_TRIANGLE_FAN);
         renderer.texCoord(0, 0);
